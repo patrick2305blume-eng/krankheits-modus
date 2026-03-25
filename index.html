@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sick-Day-Rules</title>
+    <style>
+        body { font-family: -apple-system, system-ui, sans-serif; background: #121212; color: white; padding: 15px; }
+        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border-left: 5px solid #34495e; }
+        .back-link { text-decoration: none; color: #5dade2; display: inline-block; margin-bottom: 15px; font-size: 14px; }
+        h2 { color: #ecf0f1; text-align: center; margin-top: 0; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; margin-bottom: 5px; color: #aaa; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; box-sizing: border-box; font-size: 16px; }
+        
+        .result-card { margin-top: 20px; padding: 15px; background: #34495e33; border: 1px solid #34495e; border-radius: 12px; display: none; }
+        .boost-val { font-size: 24px; font-weight: bold; color: #5dade2; text-align: center; margin-bottom: 10px; }
+        .todo-list { font-size: 13px; line-height: 1.6; color: #ddd; margin-top: 10px; }
+        .todo-list li { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        
+        .warning-banner { background: #c0392b; color: white; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="back-link">← Dashboard</a>
+    <h2>🤒 Krankheits-Modus</h2>
+    
+    <div class="input-group">
+        <label>Körpertemperatur (°C):</label>
+        <input type="number" id="temp" step="0.1" placeholder="z.B. 38.5" oninput="calcSick()">
+    </div>
+
+    <div class="input-group">
+        <label>Ketone im Urin/Blut?</label>
+        <select id="ketone" onchange="calcSick()">
+            <option value="none">Negativ / Normal</option>
+            <option value="low">Leicht erhöht (+)</option>
+            <option value="high">Hoch (++/+++) -> NOTFALL</option>
+        </select>
+    </div>
+
+    <div id="sickRes" class="result-card">
+        <div id="boost" class="boost-val">--</div>
+        <ul class="todo-list" id="todos">
+            </ul>
+    </div>
+
+    <div id="emergency" class="warning-banner" style="display:none;">
+        ⚠️ SOFORT ARZT KONTAKTIEREN! (Ketoazidose-Gefahr)
+    </div>
+</div>
+
+<script>
+function calcSick() {
+    const temp = parseFloat(document.getElementById('temp').value) || 36.6;
+    const ketone = document.getElementById('ketone').value;
+    const resBox = document.getElementById('sickRes');
+    const boostDiv = document.getElementById('boost');
+    const todoList = document.getElementById('todos');
+    const emergency = document.getElementById('emergency');
+
+    resBox.style.display = "block";
+    emergency.style.display = (ketone === 'high') ? "block" : "none";
+
+    let basalPlus = 0;
+    if (temp > 37.5) {
+        // Faustformel: +10% pro Grad über 37.5
+        basalPlus = Math.round((temp - 37.5) * 20); 
+    }
+
+    boostDiv.innerText = "Basal-Anpassung: +" + basalPlus + "%";
+    
+    let html = `<li>Alle 2-3 Stunden BZ & Ketone messen.</li>`;
+    html += `<li>Viel trinken (mind. 200ml Wasser/h), um Nieren zu spülen.</li>`;
+    
+    if (basalPlus > 0) {
+        html += `<li>Erhöhter Insulinbedarf durch Entzündungswerte berücksichtigt.</li>`;
+    }
+    if (ketone !== 'none') {
+        html += `<li style="color:#e74c3c; font-weight:bold;">Korrekturbedarf stark erhöht! Siehe Keto-Plan.</li>`;
+    }
+    
+    todoList.innerHTML = html;
+}
+</script>
+
+</body>
+</html>
