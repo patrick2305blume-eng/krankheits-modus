@@ -6,19 +6,20 @@
     <title>Sick-Day-Rules</title>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #121212; color: white; padding: 15px; }
-        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border-left: 5px solid #34495e; }
+        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border-left: 5px solid #d33682; }
         .back-link { text-decoration: none; color: #5dade2; display: inline-block; margin-bottom: 15px; font-size: 14px; }
         h2 { color: #ecf0f1; text-align: center; margin-top: 0; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-size: 13px; margin-bottom: 5px; color: #aaa; }
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; box-sizing: border-box; font-size: 16px; }
+        .section-title { font-size: 11px; color: #d33682; text-transform: uppercase; margin-bottom: 10px; font-weight: bold; }
+        .input-group { margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 10px; }
+        label { display: block; font-size: 13px; margin-bottom: 8px; color: #aaa; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #121212; color: white; box-sizing: border-box; font-size: 16px; }
         
-        .result-card { margin-top: 20px; padding: 15px; background: #34495e33; border: 1px solid #34495e; border-radius: 12px; display: none; }
-        .boost-val { font-size: 24px; font-weight: bold; color: #5dade2; text-align: center; margin-bottom: 10px; }
-        .todo-list { font-size: 13px; line-height: 1.6; color: #ddd; margin-top: 10px; }
+        .result-card { margin-top: 20px; padding: 15px; background: #d3368215; border: 1px solid #d33682; border-radius: 12px; display: none; }
+        .boost-val { font-size: 22px; font-weight: bold; color: #ff4d4d; text-align: center; margin-bottom: 10px; }
+        .todo-list { font-size: 13px; line-height: 1.6; color: #ddd; margin-top: 10px; padding-left: 20px; }
         .todo-list li { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
         
-        .warning-banner { background: #c0392b; color: white; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; margin-top: 20px; }
+        .warning-banner { background: #c0392b; color: white; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: center; margin-top: 20px; border: 2px dashed white; }
     </style>
 </head>
 <body>
@@ -28,58 +29,105 @@
     <h2>🤒 Krankheits-Modus</h2>
     
     <div class="input-group">
+        <div class="section-title">Temperatur</div>
         <label>Körpertemperatur (°C):</label>
         <input type="number" id="temp" step="0.1" placeholder="z.B. 38.5" oninput="calcSick()">
     </div>
 
     <div class="input-group">
-        <label>Ketone im Urin/Blut?</label>
-        <select id="ketone" onchange="calcSick()">
-            <option value="none">Negativ / Normal</option>
-            <option value="low">Leicht erhöht (+)</option>
-            <option value="high">Hoch (++/+++) -> NOTFALL</option>
+        <div class="section-title">Ketone</div>
+        <label>Messmethode wählen:</label>
+        <select id="ketoMethod" onchange="toggleKetoInput()">
+            <option value="blood">Blut (mmol/l)</option>
+            <option value="urine">Urin (Stäbchen +)</option>
         </select>
+        
+        <div id="bloodInput" style="margin-top:10px;">
+            <label>Blut-Ketonwert (mmol/l):</label>
+            <input type="number" id="ketoValue" step="0.1" placeholder="z.B. 0.8" oninput="calcSick()">
+        </div>
+
+        <div id="urineInput" style="margin-top:10px; display:none;">
+            <label>Urin-Farbe (+):</label>
+            <select id="urineValue" onchange="calcSick()">
+                <option value="0">Negativ</option>
+                <option value="1">+</option>
+                <option value="2">++</option>
+                <option value="3">+++</option>
+            </select>
+        </div>
     </div>
 
     <div id="sickRes" class="result-card">
         <div id="boost" class="boost-val">--</div>
-        <ul class="todo-list" id="todos">
-            </ul>
+        <ul class="todo-list" id="todos"></ul>
     </div>
 
     <div id="emergency" class="warning-banner" style="display:none;">
-        ⚠️ SOFORT ARZT KONTAKTIEREN! (Ketoazidose-Gefahr)
+        ⚠️ NOTFALL: KETOAZIDOSE-GEFAHR!<br>
+        Sofort Arzt kontaktieren oder 112 rufen.
     </div>
 </div>
 
 <script>
+function toggleKetoInput() {
+    const method = document.getElementById('ketoMethod').value;
+    document.getElementById('bloodInput').style.display = (method === 'blood') ? 'block' : 'none';
+    document.getElementById('urineInput').style.display = (method === 'urine') ? 'block' : 'none';
+    calcSick();
+}
+
 function calcSick() {
     const temp = parseFloat(document.getElementById('temp').value) || 36.6;
-    const ketone = document.getElementById('ketone').value;
+    const method = document.getElementById('ketoMethod').value;
+    const bloodKeto = parseFloat(document.getElementById('ketoValue').value) || 0;
+    const urineKeto = parseInt(document.getElementById('urineValue').value);
+    
     const resBox = document.getElementById('sickRes');
     const boostDiv = document.getElementById('boost');
     const todoList = document.getElementById('todos');
     const emergency = document.getElementById('emergency');
 
     resBox.style.display = "block";
-    emergency.style.display = (ketone === 'high') ? "block" : "none";
+    
+    // Logik für Alarmstufe
+    let isEmergency = false;
+    let ketoStatus = 'none'; // none, low, high
 
+    if (method === 'blood') {
+        if (bloodKeto >= 3.0) { isEmergency = true; ketoStatus = 'high'; }
+        else if (bloodKeto >= 1.5) { ketoStatus = 'high'; }
+        else if (bloodKeto >= 0.6) { ketoStatus = 'low'; }
+    } else {
+        if (urineKeto >= 3) { isEmergency = true; ketoStatus = 'high'; }
+        else if (urineKeto >= 2) { ketoStatus = 'high'; }
+        else if (urineKeto === 1) { ketoStatus = 'low'; }
+    }
+
+    emergency.style.display = isEmergency ? "block" : "none";
+
+    // Basal-Logik (10% mehr pro Grad Fieber ab 37.5)
     let basalPlus = 0;
     if (temp > 37.5) {
-        // Faustformel: +10% pro Grad über 37.5
-        basalPlus = Math.round((temp - 37.5) * 20); 
+        basalPlus = Math.round((temp - 37.5) * 10); 
     }
+    
+    // Keton-Bonus: Ketone erhöhen den Bedarf massiv
+    if (ketoStatus === 'low') basalPlus += 10;
+    if (ketoStatus === 'high') basalPlus += 20;
 
-    boostDiv.innerText = "Basal-Anpassung: +" + basalPlus + "%";
+    boostDiv.innerText = "Empfehlung: Basal +" + basalPlus + "%";
     
-    let html = `<li>Alle 2-3 Stunden BZ & Ketone messen.</li>`;
-    html += `<li>Viel trinken (mind. 200ml Wasser/h), um Nieren zu spülen.</li>`;
+    let html = `<li>Alle 2 Stunden BZ & Ketone kontrollieren.</li>`;
+    html += `<li>Flüssigkeit: Mind. 250ml Wasser/Tee pro Stunde trinken.</li>`;
     
-    if (basalPlus > 0) {
-        html += `<li>Erhöhter Insulinbedarf durch Entzündungswerte berücksichtigt.</li>`;
+    if (temp >= 38.5) {
+        html += `<li>Fieber erhöht den Stoffwechsel deutlich. Ruhe bewahren!</li>`;
     }
-    if (ketone !== 'none') {
-        html += `<li style="color:#e74c3c; font-weight:bold;">Korrekturbedarf stark erhöht! Siehe Keto-Plan.</li>`;
+    
+    if (ketoStatus !== 'none') {
+        html += `<li style="color:#ff4d4d; font-weight:bold;">Achtung: Insulin wirkt schwächer. Korrektur-Einheiten ggf. erhöhen (nach Plan).</li>`;
+        html += `<li>Bei Erbrechen sofort ins Krankenhaus!</li>`;
     }
     
     todoList.innerHTML = html;
