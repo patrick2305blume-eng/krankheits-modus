@@ -9,6 +9,19 @@
         .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border-left: 5px solid #d33682; }
         .back-link { text-decoration: none; color: #5dade2; display: inline-block; margin-bottom: 15px; font-size: 14px; }
         h2 { color: #ecf0f1; text-align: center; margin-top: 0; }
+        
+        .disclaimer { 
+            background: rgba(243, 156, 18, 0.1); 
+            border: 1px solid #f39c12; 
+            color: #f39c12; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-size: 11px; 
+            margin-bottom: 20px; 
+            text-align: center;
+            line-height: 1.4;
+        }
+
         .section-title { font-size: 11px; color: #d33682; text-transform: uppercase; margin-bottom: 10px; font-weight: bold; }
         .input-group { margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 10px; }
         label { display: block; font-size: 13px; margin-bottom: 8px; color: #aaa; }
@@ -27,6 +40,10 @@
 <div class="container">
     <a href="index.html" class="back-link">← Dashboard</a>
     <h2>🤒 Krankheits-Modus</h2>
+
+    <div class="disclaimer">
+        <strong>WICHTIGER HINWEIS:</strong> Diese Software dient nur als Rechenhilfe und allgemeine Empfehlung. Jede Anpassung der Therapie muss zwingend mit dem behandelnden Arzt besprochen werden. Bei schweren Symptomen sofort ärztliche Hilfe suchen!
+    </div>
     
     <div class="input-group">
         <div class="section-title">Temperatur</div>
@@ -48,7 +65,7 @@
         </div>
 
         <div id="urineInput" style="margin-top:10px; display:none;">
-            <label>Urin-Farbe (+):</label>
+            <label>Urin-Stäbchen (+):</label>
             <select id="urineValue" onchange="calcSick()">
                 <option value="0">Negativ</option>
                 <option value="1">+</option>
@@ -90,44 +107,41 @@ function calcSick() {
 
     resBox.style.display = "block";
     
-    // Logik für Alarmstufe
     let isEmergency = false;
-    let ketoStatus = 'none'; // none, low, high
+    let ketoStatus = 'none';
 
+    // Blut-Logik nach gängigen Standards
     if (method === 'blood') {
         if (bloodKeto >= 3.0) { isEmergency = true; ketoStatus = 'high'; }
         else if (bloodKeto >= 1.5) { ketoStatus = 'high'; }
         else if (bloodKeto >= 0.6) { ketoStatus = 'low'; }
     } else {
-        if (urineKeto >= 3) { isEmergency = true; ketoStatus = 'high'; }
-        else if (urineKeto >= 2) { ketoStatus = 'high'; }
+        if (urineKeto >= 2) { ketoStatus = 'high'; if(urineKeto >= 3) isEmergency = true; }
         else if (urineKeto === 1) { ketoStatus = 'low'; }
     }
 
     emergency.style.display = isEmergency ? "block" : "none";
 
-    // Basal-Logik (10% mehr pro Grad Fieber ab 37.5)
     let basalPlus = 0;
     if (temp > 37.5) {
         basalPlus = Math.round((temp - 37.5) * 10); 
     }
     
-    // Keton-Bonus: Ketone erhöhen den Bedarf massiv
     if (ketoStatus === 'low') basalPlus += 10;
     if (ketoStatus === 'high') basalPlus += 20;
 
-    boostDiv.innerText = "Empfehlung: Basal +" + basalPlus + "%";
+    boostDiv.innerText = "Empfohlene Anpassung: Basal +" + basalPlus + "%";
     
     let html = `<li>Alle 2 Stunden BZ & Ketone kontrollieren.</li>`;
     html += `<li>Flüssigkeit: Mind. 250ml Wasser/Tee pro Stunde trinken.</li>`;
     
-    if (temp >= 38.5) {
-        html += `<li>Fieber erhöht den Stoffwechsel deutlich. Ruhe bewahren!</li>`;
+    if (temp >= 39.0) {
+        html += `<li>Hohes Fieber: Erhöhter Flüssigkeitsverlust berücksichtigen.</li>`;
     }
     
     if (ketoStatus !== 'none') {
-        html += `<li style="color:#ff4d4d; font-weight:bold;">Achtung: Insulin wirkt schwächer. Korrektur-Einheiten ggf. erhöhen (nach Plan).</li>`;
-        html += `<li>Bei Erbrechen sofort ins Krankenhaus!</li>`;
+        html += `<li style="color:#ff4d4d; font-weight:bold;">Korrekturbedarf ist erhöht. Siehe Keto-Schema.</li>`;
+        html += `<li>Bei Übelkeit oder Erbrechen: Sofort Klinik!</li>`;
     }
     
     todoList.innerHTML = html;
